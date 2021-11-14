@@ -70,8 +70,13 @@ class Normalizer():
         List[List[float]]
             Нормированный набор данных.
         '''
+        count = 0
+        if type(data) == list:
+            count = len(data)
+        else:
+            count = data.shape[0]
         normData = []
-        for i in range(len(data)):
+        for i in range(count):
             cur_sample = []
             for j in range(self.dim):
                 cur_sample.append(self.__normire(data[i][j], j))
@@ -90,8 +95,13 @@ class Normalizer():
         List[List[float]]
             Денормированный набор данных.
         '''
+        count = 0
+        if type(normData) == list:
+            count = len(normData)
+        else:
+            count = normData.shape[0]
         data = []
-        for i in range(len(normData)):
+        for i in range(count):
             cur_sample = []
             for j in range(self.dim):
                 cur_sample.append(self.__renormire(normData[i][j], j))

@@ -70,9 +70,10 @@ class AutoencoderClass():
   def get_models(self):
     return self.autoencoder, self.encoder, self.decoder
 
-  # Loss функция 
+  # Loss функция
+  @tf.autograph.experimental.do_not_convert
   def custom_loss(self, x_true, x_pred):
-    return K.mean(K.square(self.func(self.renormalize(x_pred)[0]) - self.func(self.normalizer.renormalize(x_true)[0])))
+    return K.mean(K.square(self.func(self.normalizer.renormalize([x_pred])[0]) - self.func(self.normalizer.renormalize([x_true])[0])))
 
   ''' Сжимающий автоэнкодер '''
   def __create_dense_ae(self):
