@@ -1,43 +1,27 @@
-from autoencoder_class import AutoencoderClass
-from normalizer_class import Normalizer
-from generator_class import DataGenerator
-import numpy as np
-from sklearn import svm
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import mean_squared_error
+from optimize_class import ParamsSelection
+from function_class import TestFunctions
+from contextlib import contextmanager
+import sys, os
 
-def func(x):
-  return x[0]*x[1] + x[1]*x[2] + x[3]*x[3]
-
-
-def compare(orig_data, pred_data):
-    # clf = svm.SVC(kernel='linear', C=1, random_state=42)
-    # scores_x = cross_val_score(clf, orig_data[0:10], pred_data[0:10], cv=5)
-    # scores_y = cross_val_score(clf, [func(x) for x in orig_data][0:10], [func(x) for x in pred_data][0:10], cv=5)
-    
-    y_error = mean_squared_error(orig_data, pred_data)
-    x_error = mean_squared_error([func(x) for x in orig_data], [func(x) for x in pred_data])
-    
-    print(f'Error X: {x_error:.2f}')
-    print(f'Error Y: {y_error:.2f}')
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:  
+            yield
+        finally:
+            sys.stdout = old_stdout
 
 
 if __name__ == "__main__":
-    dim = 4
-    irr_dim = 2
-    data_range = [(0, 100), (0, 100), (0, 100), (0, 100)]
-    generator = DataGenerator(dim, data_range)
-    normalizer = Normalizer(dim, data_range)
+    test = TestFunctions()
+    func = test.func_1()
     
-    n = 30000
-    sobol_data = generator.get_sobol(n, irr_dim)
-    data_train = np.array(sobol_data[0:int(n * 0.7)])
-    data_test = np.array(sobol_data[int(n * 0.7):n])
+    optimizer = ParamsSelection()
+    with suppress_stdout():
+        x_opt, y_err = optimizer.ego('dense',func, 60000, 6, 15)
     
-    model = AutoencoderClass(func, dim + irr_dim, 4, list(['relu', 'sigmoid']), 'dense', normalizer)
-    model.fit(data_train, data_test, 30, 16, True)
-    
-    pred_data = normalizer.renormalize([model.predict(x.reshape(1,dim + irr_dim))[0] for x in sobol_data[0:100]])
-    compare(normalizer.renormalize(sobol_data)[0:100], pred_data[0:100])
-    
+    print(f'Opt params:\nepohs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
+    print(f'Opt Y error: {y_err}')
     

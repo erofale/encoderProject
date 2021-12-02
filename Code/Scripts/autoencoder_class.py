@@ -12,7 +12,7 @@ from normalizer_class import Normalizer
 class AutoencoderClass():
   def __init__(self, func, input_dim : int, encoding_dim : int, activations : list, enc_type : str, normalizer : Normalizer):
     self.func = func                 # Функция обучения
-    self.batch = 0
+    self.batch = 0                   # Размр батча
     self.input_dim = input_dim       # Размерность входного представления
     self.encoding_dim = encoding_dim # Размерность кодированного представления
     self.activations = activations   # Функции активации
@@ -25,7 +25,10 @@ class AutoencoderClass():
     try:
       # Сборка моделей
       self.encoder, self.decoder, self.autoencoder = self.aes_types[self.enc_type]()
-      self.autoencoder.compile(optimizer = 'adam', loss = self.custom_loss, metrics=['accuracy'])
+      if self.aes_types != 'vae':
+        self.autoencoder.compile(optimizer = 'adam', loss = self.custom_loss, metrics=['accuracy'])
+      else:
+        self.autoencoder.compile(optimizer = 'adam', loss = self.vae_loss, metrics=['accuracy'])
     except KeyError as e:
       raise ValueError('Undefined unit: {}'.format(e.args[0]))
 
@@ -73,7 +76,16 @@ class AutoencoderClass():
   # Loss функция
   @tf.autograph.experimental.do_not_convert
   def custom_loss(self, x_true, x_pred):
-    return K.mean(K.square(self.func(self.normalizer.renormalize([x_pred])[0]) - self.func(self.normalizer.renormalize([x_true])[0])))
+    return K.mean(K.abs(self.func(self.normalizer.renormalize(x_pred)[0]) - self.func(self.normalizer.renormalize(x_true)[0])))
+
+  # Loss функция для вариационного автоэнкодера
+  @tf.autograph.experimental.do_not_convert
+  def vae_loss(self, x_true, x_pred):
+    x_true = K.reshape(x_true, shape=(self.batch, self.input_dim))
+    x_pred = K.reshape(x_pred, shape=(self.batch, self.input_dim))
+    loss = self.custom_loss(x_true, x_pred)
+    kl_loss = -0.5 * K.sum(1 + self.z_log_var - K.square(self.z_mean) - K.exp(self.z_log_var))
+    return loss + kl_loss
 
   ''' Сжимающий автоэнкодер '''
   def __create_dense_ae(self):
@@ -95,16 +107,12 @@ class AutoencoderClass():
   def __create_deep_dense_ae(self):
     # Энкодер
     input_data = Input(shape=(self.input_dim))
-    ############# Здесь фиксить надо с размерностями слоёв и как подавать активации на вход##########
-    x = Dense(self.encoding_dim*3, activation='relu')(input_data)
-    x = Dense(self.encoding_dim*2, activation='relu')(x)
+    x = Dense(self.encoding_dim*2, activation='relu')(input_data)
     encoded = Dense(self.encoding_dim, activation='linear')(x)
     
     # Декодер
     input_encoded = Input(shape=(self.encoding_dim,))
-    ############# Здесь фиксить надо с размерностями слоёв ##########
     x = Dense(self.encoding_dim*2, activation='relu')(input_encoded)
-    x = Dense(self.encoding_dim*3, activation='relu')(x)
     decoded = Dense(self.input_dim, activation='sigmoid')(x)
     
     # Модели
@@ -146,35 +154,24 @@ class AutoencoderClass():
   ''' Видео:  https://youtu.be/ebI3JLAcWqQ '''
   def __create_vae(self):
     hidden_dim = 2
-    
-    # Выключение нейронов во избежании переобучения
-    def dropout_and_batch(x):
-      return Dropout(0.3)(BatchNormalization()(x))
 
     input_data = Input(shape=(self.input_dim))
     x = Dense(self.encoding_dim, activation='relu')(input_data)
-    x = dropout_and_batch(x)
-    #x = Dense(128, activation='relu')(x)
-    #x = dropout_and_batch(x)
     
-    z_mean = Dense(self.encoding_dim)(x)    # Мат ожидание
-    z_log_var = Dense(self.encoding_dim)(x) # Логарифм дисперсии
+    self.z_mean = Dense(self.encoding_dim)(x)    # Мат ожидание
+    self.z_log_var = Dense(self.encoding_dim)(x) # Логарифм дисперсии
     
     # Нормальное распределение N(0, 1)
     def noiser(args):
-      global z_mean, z_log_var
-      z_mean, z_log_var = args
+      self.z_mean, self.z_log_var = args
       N = K.random_normal(shape=(self.batch, self.encoding_dim), mean=0., stddev=1.0)
-      return K.exp(z_log_var / 2) * N + z_mean
+      return K.exp(self.z_log_var / 2) * N + self.z_mean
     
     # Преобразование данных в нормальное распределения
-    h = Lambda(noiser, output_shape=(self.encoding_dim))([z_mean, z_log_var])
+    h = Lambda(noiser, output_shape=(self.encoding_dim,))([self.z_mean, self.z_log_var])
     
-    input_encoded = Input(shape=(self.encoding_dim))
+    input_encoded = Input(shape=(self.encoding_dim,))
     d = Dense(self.encoding_dim, activation='relu')(input_encoded)
-    d = dropout_and_batch(d)
-    #d = Dense(256, activation='relu')(d)
-    #d = dropout_and_batch(d)
     decoded = Dense(self.input_dim, activation='sigmoid')(d)
     
     encoder = Model(input_data, h, name='encoder')
