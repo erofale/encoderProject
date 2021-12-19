@@ -1,11 +1,11 @@
+from autoencoder_class import AutoencoderClass
+from function_class import Function
 from smt.applications import EGO
 from smt.sampling_methods import LHS
 import sys
 import numpy as np
 from sklearn.metrics import mean_absolute_error
-from function_class import Function
 import random
-from autoencoder_class import AutoencoderClass
 
 ''' Класс подбора параметров '''
 class ParamsSelection():
@@ -13,10 +13,28 @@ class ParamsSelection():
         pass
     
     def __compare(self, func : Function, orig_data, pred_data):
-         y_orig = [func(x) for x in orig_data]
-         y_pred = [func(x) for x in pred_data]
-         y_error = mean_absolute_error(y_orig, y_pred)
-         return y_error
+        '''
+        Расчёт отклонения между эталонными и предсказанными данными
+
+        Parameters
+        ----------
+        func : Function
+            Исходная функция.
+        orig_data : list
+            Эталонный набор данных.
+        pred_data : list
+            Предсказанный набор данных.
+        
+        Returns
+        -------
+        error : float
+            Значение ошибки абсолютного отклонения.
+        
+        '''
+        y_orig = [func(x) for x in orig_data]
+        y_pred = [func(x) for x in pred_data]
+        y_error = mean_absolute_error(y_orig, y_pred)
+        return y_error
         
     def brute_force(self, enc_type : str, func : Function, n : int):
         '''
@@ -43,8 +61,11 @@ class ParamsSelection():
         h_epoch = 5
         h_size = 1
         h_percent = 0.1
-        dim, irr_dim, generator, normalizer = func.get_params()
+        dim, irr_dim, _, generator, normalizer = func.get_params()
         error = sys.float_info.max
+        rand_samles_count = 200
+        rand_data = generator.get_lsh(rand_samles_count, irr_dim)
+        norm_data = normalizer.normalize(rand_data)
         hp_list = list()
         for epoch in range(5, 60, h_epoch):
           for batch in  [2**i for i in range(4, 9)]:
@@ -52,24 +73,26 @@ class ParamsSelection():
               for percent in np.arange(0.5, 1.0, h_percent):
                   sobol_data = generator.get_sobol(n, irr_dim)
                   random.shuffle(sobol_data)
-                  data_train = np.array(sobol_data[0:int(n * h_percent)])
-                  data_test = np.array(sobol_data[int(n * h_percent):n])
-                  model = AutoencoderClass(func, dim + irr_dim, size, list(['relu', 'sigmoid']), enc_type, normalizer)
+                  data_train = np.array(sobol_data[0:int(n * percent)])
+                  data_test = np.array(sobol_data[int(n * percent):n])
+                  model = AutoencoderClass(func, dim + irr_dim, size, enc_type, normalizer)
                   model.fit(data_train, data_test, epoch, batch, True)
-                  rand_data = generator.get_random(100)
-                  pred_data = normalizer.renormalize([model.predict(np.array(x).reshape(1,dim + irr_dim))[0] for x in normalizer.normalize(rand_data)])
+                  pred_data = normalizer.renormalize([model.predict(np.array(x).reshape(1,dim + irr_dim))[0] for x in norm_data])
                   cur_error = self.__compare(func, rand_data, pred_data)
                   if cur_error < error:
+                    model.save('../../Saved models/Weights/' + f'{func.func_name}_brute_force_{enc_type}_{dim + irr_dim}_{size}.h5')    
                     error = cur_error
                     hp_list.clear()
                     hp_list.append(epoch)
                     hp_list.append(batch)
                     hp_list.append(size)
                     hp_list.append(percent)
+        
+        with open('../../Saved models/Params/' + f'{func.func_name}_brute_force_{enc_type}_{dim + irr_dim}_{hp_list[2]}.txt', 'w') as f:
+            f.write(f'func name: {func.func_name}\nepochs: {hp_list[0]}\nbatch: {hp_list[1]}\nencoded dim: {hp_list[2]}\nsample split: {hp_list[3]}')
         return hp_list, error
     
-    
-    def ego(self, enc_type : str, func : Function, n : int, ndoe : int, n_iter : int):
+    def ego(self, enc_type : str, func : Function,  n : int, ndoe : int, n_iter : int):
         '''
         Метод EGO - эффективная глобальная оптимизация
 
@@ -95,8 +118,11 @@ class ParamsSelection():
 
         '''
         
-        dim, irr_dim, generator, normalizer = func.get_params()
-        
+        dim, irr_dim, _, generator, normalizer = func.get_params()
+        rand_samles_count = 200
+        rand_data = generator.get_lsh(rand_samles_count, irr_dim)
+        norm_data = normalizer.normalize(rand_data)
+
         def predict_params(x):
             ''' 
             x[0] - число эпох
@@ -112,19 +138,20 @@ class ParamsSelection():
               random.shuffle(sobol_data)
               data_train = np.array(sobol_data[0:int(n * x[i][3])])
               data_test = np.array(sobol_data[int(n * x[i][3]):n])
-              model = AutoencoderClass(func, dim + irr_dim, int(x[i][2]), list(['relu', 'sigmoid']), enc_type, normalizer)
+              model = AutoencoderClass(func, dim + irr_dim, int(x[i][2]), enc_type, normalizer)
               model.fit(data_train, data_test, int(x[i][0]), int(x[i][1]), True)
-              rand_data = generator.get_random(100)
-              pred_data = normalizer.renormalize([model.predict(np.array(xx).reshape(1,dim + irr_dim))[0] for xx in normalizer.normalize(rand_data)])
+              model.save('../../Saved models/Weights/' + f'{func.func_name}_ego_{enc_type}_{dim + irr_dim}_{int(x[i][2])}.h5')
+              pred_data = normalizer.renormalize([model.predict(np.array(xx).reshape(1,dim + irr_dim))[0] for xx in norm_data])
               res[i] = self.__compare(func, rand_data, pred_data)
             return res
         
         xlimits = np.array([[5,60], [16,256], [dim//2, dim - 1], [0.5, 1.0]])
-        ndoe = 6
-        n_iter = 15
         criterion='EI'
         sampling = LHS(xlimits=xlimits, random_state=3)
         xdoe = sampling(ndoe)
         ego = EGO(n_iter=n_iter, criterion=criterion, xdoe=xdoe, xlimits=xlimits)
         x_opt, error, _, _, _ = ego.optimize(fun=predict_params)
-        return list(x_opt), error
+        x_opt = [int(x_opt[0]), int(x_opt[1]), int(x_opt[2]), x_opt[3]]
+        with open('../../Saved models/Params/' + f'{func.func_name}_ego_{enc_type}_{dim + irr_dim}_{x_opt[2]}.txt', 'w') as f:
+            f.write(f'func name: {func.func_name}\nepochs: {x_opt[0]}\nbatch: {x_opt[1]}\nencoded dim: {x_opt[2]}\nsample split: {x_opt[3]}')
+        return x_opt, error
