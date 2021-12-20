@@ -1,7 +1,9 @@
 from optimize_class import ParamsSelection
 from function_class import TestFunctions
+from autoencoder_class import AutoencoderClass
 from contextlib import contextmanager
 import sys, os
+import argparse
 
 @contextmanager
 def suppress_stdout():
@@ -13,118 +15,56 @@ def suppress_stdout():
         finally:
             sys.stdout = old_stdout
 
+ 
+def createParser ():
+    parser = argparse.ArgumentParser(prog = 'train_models',
+            description = 'Запуск подбора параметров выбранного автоэнкодера для выбранной функции')
+    parser.add_argument ('-f', '--func', choices = TestFunctions.get_func_names() + ['all'],
+                         default = 'all', type = str, help = 'Название функции')
+    parser.add_argument ('-a', '--aec', choices = AutoencoderClass.get_aec_types() + ['all'],
+                         default = 'all', type = str, help = 'Тип автоэнкодера')
+    return parser
 
-if __name__ == "__main__":
-    test = TestFunctions()
-    func = test.func_1()
-    dim, irr, _, _, _= func.get_params()
-    optimizer = ParamsSelection()
+
+if __name__ == "__main__":   
+    parser = createParser()
+    namespace = parser.parse_args(sys.argv[1:])
+    f_name = namespace.func
+    aec_type = namespace.aec
     
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('dense',func, 60000,dim + irr + 1, 100)
+    func_names = TestFunctions.get_func_names()
+    aec_types = AutoencoderClass.get_aec_types()
     
-    print(f'Function 1 dense training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'Opt Y error: {y_err}\n')
+    if(f_name == 'all'):
+        for f in func_names:
+            func = TestFunctions.get_func(f)
+            dim, irr, _, _, _= func.get_params()
+            optimizer = ParamsSelection()
+
+            if(aec_type == 'all'):
+                for aec in aec_types:
+                    with suppress_stdout():
+                        x_opt, y_err = optimizer.ego(aec ,func, 60000,dim + irr + 1, 100)
+                    print(f'Function 1 {aec} training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
+                    print(f'Opt mean Y error: {y_err}\n')
+            else:
+                with suppress_stdout():
+                    x_opt, y_err = optimizer.ego(aec_type ,func, 60000,dim + irr + 1, 100)
+                print(f'Function 1 {aec_type} training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
+                print(f'Opt mean Y error: {y_err}\n')
     
-    #--------------------------------------------------------------------#
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('deep',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 1 deep training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('vae',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 1 vae training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    #--------------------------------------------------------------------#
-    #--------------------------------------------------------------------#
-    
-    func = test.func_2()
-    dim, irr, _, _, _= func.get_params()
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('dense',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 2 dense training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('deep',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 2 deep training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('vae',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 2 vae training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    #--------------------------------------------------------------------#
-    #--------------------------------------------------------------------#
-    
-    func = test.func_3()
-    dim, irr, _, _, _= func.get_params()
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('dense',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 3 dense training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('deep',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 3 deep training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('vae',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 3 vae training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    #--------------------------------------------------------------------#
-    #--------------------------------------------------------------------#
-    
-    func = test.func_6()
-    dim, irr, _, _, _= func.get_params()
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('dense',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 6 dense training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('deep',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 6 deep training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
-    
-    #--------------------------------------------------------------------#
-    
-    with suppress_stdout():
-        x_opt, y_err = optimizer.ego('vae',func, 60000, dim + irr + 1, 100)
-    
-    print(f'function 6 vae training\nopt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
-    print(f'opt y error: {y_err}\n')
+    else:
+        func = TestFunctions.get_func(f_name)
+        dim, irr, _, _, _= func.get_params()
+        optimizer = ParamsSelection()
+        if(aec_type == 'all'):
+            for aec in aec_types:
+                with suppress_stdout():
+                    x_opt, y_err = optimizer.ego(aec ,func, 60000,dim + irr + 1, 100)
+                print(f'Function 1 {aec} training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
+                print(f'Opt mean Y error: {y_err}\n')
+        else:
+            with suppress_stdout():
+                x_opt, y_err = optimizer.ego(aec_type ,func, 60000,dim + irr + 1, 100)
+            print(f'Function 1 {aec_type} training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
+            print(f'Opt mean Y error: {y_err}\n')

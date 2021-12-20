@@ -2,7 +2,6 @@ from generator_class import DataGenerator
 from normalizer_class import Normalizer
 from typing import Tuple, List
 import tensorflow as tf
-import math
 
 ''' Класс функции '''
 class Function():
@@ -49,15 +48,18 @@ class TestFunctions():
         pass
     
     @classmethod
-    def get_func(self, name : str):
+    def get_func_names(self):
         self.functions = {
             'func_1' : self.func_1,
             'func_2' : self.func_2,
             'func_3' : self.func_3,
             'func_4' : self.func_4,
-            'func_5' : self.func_5,
-            'func_6' : self.func_6
         }
+        return list(self.functions.keys())
+
+    @classmethod
+    def get_func(self, name : str):
+        self.get_func_names()
         return self.functions[name](self)
 
     def func_1(self):
@@ -85,49 +87,9 @@ class TestFunctions():
         return func
     
     def func_4(self):
-        def f(t):
-            def x1(t):
-                return t
-            def x2(t):
-                return tf.math.pow(tf.math.sin(t), 2)
-            def x3(t):
-                return tf.math.pow(tf.math.cos(t), 2)
-            def x4(t):
-                return tf.math.pow(t, 2)
-            def x5(t):
-                return 2 * t - 1
-            return x1(t[0]) + x2(t[0]) + x3(t[0]) + x4(t[0]) + x5(t[0])
-        
-        data_range = [(0, math.pi / 2)]
-        func = Function(f, 'func_4', 1, 0, data_range)
-        return func
-    
-    def func_5(self):
-        def f(t):
-            def x1(t):
-                return t
-            def x2(t):
-                return tf.math.pow(tf.math.sin(t), 2)
-            def x3(t):
-                return tf.math.pow(tf.math.cos(t), 2)
-            def x4(t):
-                return 3 * t - 5
-            def x5(t):
-                return t - 2
-            def x6(t):
-                return tf.math.pow(tf.math.sin(t), 4)
-            def x7(t):
-                return tf.math.pow(tf.math.cos(t), 4)
-            return tf.math.pow(x1(t[0]), 2) + x2(t[0]) + 3 * x3(t[0]) + x4(t[0]) + tf.math.pow(x5(t[1]), 2) + x6(t[1]) + x7(t[1])
-        
-        data_range = [(0, math.pi / 2), (0, math.pi / 2)]
-        func = Function(f, 'func_5', 2, 0, data_range)
-        return func
-    
-    def func_6(self):
         def f(x):
             return tf.math.pow(x[0] - 1, 2) + tf.math.pow(x[1], 2) + x[2] + 2 * x[3] + tf.math.pow(x[4], 3) + x[5]
         
         data_range = [(0, 100), (0, 100), (0, 100), (0, 100), (0, 100)]
-        func = Function(f, 'func_6', 6, 4, data_range)
+        func = Function(f, 'func_4', 6, 4, data_range)
         return func

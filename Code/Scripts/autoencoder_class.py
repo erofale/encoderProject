@@ -18,15 +18,11 @@ class AutoencoderClass():
     self.input_dim = input_dim       # Размерность входного представления
     self.encoding_dim = encoding_dim # Размерность кодированного представления
     self.enc_type = enc_type         # Тип автоэнкодера
-    self.aes_types = {'dense': self.__create_dense_ae,
-                      'deep':  self.__create_deep_dense_ae,
-                      'conv':  self.__create_deep_conv_ae,
-                      'vae':   self.__create_vae}
     self.normalizer = normalizer     # Нормировщик функции
     try:
       # Сборка моделей
-      self.encoder, self.decoder, self.autoencoder = self.aes_types[self.enc_type]()
-      if self.aes_types != 'vae':
+      self.encoder, self.decoder, self.autoencoder = self.aec_types[self.enc_type]()
+      if self.enc_type != 'vae':
         self.autoencoder.compile(optimizer = 'adam', loss = self.custom_loss, metrics=['accuracy'])
       else:
         self.autoencoder.compile(optimizer = 'adam', loss = self.vae_loss, metrics=['accuracy'])
@@ -70,6 +66,13 @@ class AutoencoderClass():
   @property
   def type(self):
     return self.enc_type
+
+  @classmethod
+  def get_aec_types(self):
+    self.aec_types = {'dense': self.__create_dense_ae,
+                      'deep':  self.__create_deep_dense_ae,
+                      'vae':   self.__create_vae}
+    return list(self.aec_types.keys())
 
   # Возвращает собранные модели
   def get_models(self):
