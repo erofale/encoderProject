@@ -21,7 +21,7 @@ class AutoencoderClass():
     self.normalizer = normalizer     # Нормировщик функции
     try:
       # Сборка моделей
-      self.encoder, self.decoder, self.autoencoder = self.aec_types[self.enc_type]()
+      self.encoder, self.decoder, self.autoencoder = self.aec_types[self.enc_type](self)
       if self.enc_type != 'vae':
         self.autoencoder.compile(optimizer = 'adam', loss = self.custom_loss, metrics=['accuracy'])
       else:
