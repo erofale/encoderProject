@@ -20,7 +20,7 @@ class Function():
         irr_dim : int
             Количество незначащих переменных. Соответственно, размерность функции (dim - irr_dim).
         data_range : List[Tuple[float,float]]
-            Область опредеоления. Диапазон значений значащих переменных.
+            Область определения. Диапазон значений значащих переменных.
 
         '''
         self.func = func
@@ -32,14 +32,52 @@ class Function():
         self.normalizer = Normalizer(self.dim, self.irr_dim, self.data_range)
         
     def __call__(self, x):
+        '''
+        Вызов функции
+
+        Parameters
+        ----------
+        x : List, ndarray
+            Список аргументов функции.
+
+        Returns
+        -------
+        float
+            Значение функции.
+
+        '''
         return self.func(x)
         
     def get_params(self):
+        '''
+        Получение параметров функции
+
+        Returns
+        -------
+        int
+            Размерность пространства.
+        int
+            Количество незначащих переменных.
+        List[Tuple[float,float]]
+            Область определения. Диапазон значений значащих переменных.
+        DataGenerator
+            Генератор данных для этой функции.
+        Normalizer
+            Нормировщик данных для этой функции.
+
+        '''
         return self.dim, self.irr_dim, self.data_range, self.generator, self.normalizer
     
     @property
     def func_name(self):
-      return self.name
+        '''
+        Returns
+        -------
+        str
+            Имя функции.
+
+        '''
+        return self.name
     
 
 ''' Класс тестовых функций '''
@@ -49,6 +87,15 @@ class TestFunctions():
     
     @classmethod
     def get_func_names(self):
+        '''
+        Получение списка имён тестовых функций
+
+        Returns
+        -------
+        List[str]
+            Список имён.
+
+        '''
         self.functions = {
             'func_1' : self.func_1,
             'func_2' : self.func_2,
@@ -59,6 +106,20 @@ class TestFunctions():
 
     @classmethod
     def get_func(self, name : str):
+        '''
+        Получение функции по её имени
+
+        Parameters
+        ----------
+        name : str
+            Имя функции.
+
+        Returns
+        -------
+        method
+            Вызываемая функция.
+
+        '''
         self.get_func_names()
         return self.functions[name](self)
 

@@ -92,6 +92,7 @@ class ParamsSelection():
             f.write(f'func name: {func.func_name}\nepochs: {hp_list[0]}\nbatch: {hp_list[1]}\nencoded dim: {hp_list[2]}\nsample split: {hp_list[3]}')
         return hp_list, error
     
+    
     def ego(self, enc_type : str, func : Function,  n : int, ndoe : int, n_iter : int):
         '''
         Метод EGO - эффективная глобальная оптимизация
