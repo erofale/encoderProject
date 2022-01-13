@@ -30,8 +30,8 @@ class Function():
         self.dim = dim
         self.irr_dim = irr_dim
         self.data_range = data_range
-        self.generator = DataGenerator(self.dim, self.data_range)
-        self.normalizer = Normalizer(self.dim, self.irr_dim, self.data_range)
+        self.generator = DataGenerator(self.dim - self.irr_dim, self.data_range)
+        self.normalizer = Normalizer(self.dim - self.irr_dim, self.irr_dim, self.data_range)
         
     def __call__(self, x):
         '''
@@ -138,7 +138,7 @@ class TestFunctions():
             return tf.math.pow(x[0],4) + 4 * tf.math.pow(x[0],3) * x[1] + 6 * tf.math.pow(x[0],2) + tf.math.pow(x[1],2) + 4 * x[0] * tf.math.pow(x[1],3) + tf.math.pow(x[1],4)
         
         data_range = [(0, 25), (0, 25)]
-        func = Function(f, 'func_2', 2, 2, data_range)
+        func = Function(f, 'func_2', 4, 2, data_range)
         return func
     
     def func_3(self):
@@ -146,7 +146,7 @@ class TestFunctions():
             return tf.math.pow(x[0] - 100, 2) + tf.math.pow(x[1] + 3, 2) + 5 * tf.math.pow(x[2] + 10, 2)
         
         data_range = [(0, 100), (0, 100), (0, 100)]
-        func = Function(f, 'func_3', 3, 3, data_range)
+        func = Function(f, 'func_3', 6, 3, data_range)
         return func
     
     def func_4(self):
@@ -154,5 +154,5 @@ class TestFunctions():
             return tf.math.pow(x[0] - 1, 2) + tf.math.pow(x[1], 2) + x[2] + 2 * x[3] + tf.math.pow(x[4], 3) + x[5]
         
         data_range = [(0, 100), (0, 100), (0, 100), (0, 100), (0, 100), (0, 100)]
-        func = Function(f, 'func_4', 6, 4, data_range)
+        func = Function(f, 'func_4', 10, 4, data_range)
         return func

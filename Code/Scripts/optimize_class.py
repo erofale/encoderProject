@@ -69,18 +69,18 @@ class ParamsSelection():
         hp_list = list()
         for epoch in range(5, 60, h_epoch):
           for batch in  [2**i for i in range(4, 9)]:
-            for size in range(dim // 2, dim, h_size):
+            for size in range(dim//2, dim, h_size):
               for percent in np.arange(0.5, 1.0, h_percent):
                   sobol_data = generator.get_sobol(n, irr_dim)
                   random.shuffle(sobol_data)
                   data_train = np.array(sobol_data[0:int(n * percent)])
                   data_test = np.array(sobol_data[int(n * percent):n])
-                  model = AutoencoderClass(func, dim + irr_dim, size, enc_type, normalizer)
+                  model = AutoencoderClass(func, dim, size, enc_type, normalizer)
                   model.fit(data_train, data_test, epoch, batch, True)
                   pred_data = normalizer.renormalize([model.predict(np.array(x).reshape(1,dim + irr_dim))[0] for x in norm_data])
                   cur_error = self.__compare(func, rand_data, pred_data)
                   if cur_error < error:
-                    model.save('../../Saved models/Weights/' + f'{func.func_name}_brute_force_{enc_type}_{dim + irr_dim}_{size}.h5')    
+                    model.save('../../Saved models/Weights/' + f'{func.func_name}_brute_force_{enc_type}_{dim}_{size}.h5')    
                     error = cur_error
                     hp_list.clear()
                     hp_list.append(epoch)
@@ -88,7 +88,7 @@ class ParamsSelection():
                     hp_list.append(size)
                     hp_list.append(percent)
         
-        with open('../../Saved models/Params/' + f'{func.func_name}_brute_force_{enc_type}_{dim + irr_dim}_{hp_list[2]}.txt', 'w') as f:
+        with open('../../Saved models/Params/' + f'{func.func_name}_brute_force_{enc_type}_{dim}_{hp_list[2]}.txt', 'w') as f:
             f.write(f'func name: {func.func_name}\nepochs: {hp_list[0]}\nbatch: {hp_list[1]}\nencoded dim: {hp_list[2]}\nsample split: {hp_list[3]}')
         return hp_list, error
     
@@ -142,19 +142,19 @@ class ParamsSelection():
                 random.shuffle(sobol_data)
                 data_train = np.array(sobol_data[0 : tr_size])
                 data_test = np.array(sobol_data[tr_size : n])
-                model = AutoencoderClass(func, dim + irr_dim, int(x[i][2]), enc_type, normalizer)
+                model = AutoencoderClass(func, dim, int(x[i][2]), enc_type, normalizer)
                 
                 if (enc_type == 'vae'):
                     while(tr_size % b_size != 0):
                         b_size += 1
                 
                 model.fit(data_train, data_test, int(x[i][0]), b_size, True)
-                model.save('../../Saved models/Weights/' + f'{func.func_name}_ego_{enc_type}_{dim + irr_dim}_{int(x[i][2])}.h5')
+                model.save('../../Saved models/Weights/' + f'{func.func_name}_ego_{enc_type}_{dim}_{int(x[i][2])}.h5')
                 pred_data = normalizer.renormalize([model.predict(np.array(xx).reshape(1,dim + irr_dim))[0] for xx in norm_data])
                 res[i] = self.__compare(func, rand_data, pred_data)
             return res
         
-        xlimits = np.array([[5,60], [16,256], [dim//2, dim - 1], [0.5, 1.0]])
+        xlimits = np.array([[5, 60], [16, 256], [dim//2, dim-1], [0.5, 1.0]])
         criterion='EI'
         sampling = LHS(xlimits=xlimits, random_state=3)
         xdoe = sampling(ndoe)
@@ -169,6 +169,6 @@ class ParamsSelection():
                 x_2 += 1
         
         x_opt = [int(x_1), int(x_2), int(x_3), x_4]
-        with open('../../Saved models/Params/' + f'{func.func_name}_ego_{enc_type}_{dim + irr_dim}_{x_opt[2]}.txt', 'w') as f:
+        with open('../../Saved models/Params/' + f'{func.func_name}_ego_{enc_type}_{dim}_{x_opt[2]}.txt', 'w') as f:
             f.write(f'func name: {func.func_name}\nepochs: {x_opt[0]}\nbatch: {x_opt[1]}\nencoded dim: {x_opt[2]}\nsample split: {x_opt[3]}')
         return x_opt, error

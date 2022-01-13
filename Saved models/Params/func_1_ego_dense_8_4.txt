@@ -1,5 +1,0 @@
-func name: func_1
-epochs: 46
-batch: 76
-encoded dim: 4
-sample split: 0.625

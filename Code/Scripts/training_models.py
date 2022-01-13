@@ -44,13 +44,13 @@ if __name__ == "__main__":
             if(aec_type == 'all'):
                 for aec in aec_types:
                     with suppress_stdout():
-                        #x_opt, y_err = optimizer.ego(aec ,func, 60000, dim + irr + 1, 100)
+                        #x_opt, y_err = optimizer.ego(aec ,func, 60000, dim + 1, 100)
                         x_opt, y_err = optimizer.ego(aec ,func, 10000, 2, 2)
                     print(f'{f} {aec} training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
                     print(f'Opt mean Y error: {y_err}\n')
             else:
                 with suppress_stdout():
-                    #x_opt, y_err = optimizer.ego(aec_type ,func, 60000, dim + irr + 1, 100)
+                    #x_opt, y_err = optimizer.ego(aec_type ,func, 60000, dim + 1, 100)
                     x_opt, y_err = optimizer.ego(aec_type ,func, 10000, 2, 2)
                 print(f'{f} {aec_type} training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
                 print(f'Opt mean Y error: {y_err}\n')
@@ -62,13 +62,13 @@ if __name__ == "__main__":
         if(aec_type == 'all'):
             for aec in aec_types:
                 with suppress_stdout():
-                    #x_opt, y_err = optimizer.ego(aec ,func, 60000,dim + irr + 1, 100)
+                    #x_opt, y_err = optimizer.ego(aec ,func, 60000,dim + 1, 100)
                     x_opt, y_err = optimizer.ego(aec ,func, 10000, 2, 2)
                 print(f'{f_name} {aec} training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
                 print(f'Opt mean Y error: {y_err}\n')
         else:
             with suppress_stdout():
-                #x_opt, y_err = optimizer.ego(aec_type ,func, 60000,dim + irr + 1, 100)
+                #x_opt, y_err = optimizer.ego(aec_type ,func, 60000,dim + 1, 100)
                 x_opt, y_err = optimizer.ego(aec_type ,func, 10000, 2, 2)
             print(f'{f_name} {aec_type} training\nOpt params:\nepochs = {int(x_opt[0])}\nbatch = {int(x_opt[1])}\nencoded dim = {int(x_opt[2])}\nsample split = {x_opt[3]*100:.2f} % : {(1.0 - x_opt[3])*100:.2f} %')
             print(f'Opt mean Y error: {y_err}\n')
