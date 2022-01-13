@@ -58,13 +58,13 @@ class ErrorCalculate():
                 y_error = mean_absolute_error(y_orig, y_pred)
                 err.append(y_error)
           
-        ax = fig.add_subplot(1, self.dim, (i+1))
-        color = np.random.rand(3)
-        ax.bar(names, err, color = color)
-        for tick in ax.get_xticklabels():
-            tick.set_rotation(35)   
+            ax = fig.add_subplot(1, self.dim, (i+1))
+            color = np.random.rand(3)
+            ax.bar(names, err, color = color)
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(35)   
         
-        fig.subplots_adjust(wspace = 0.3)
+        fig.subplots_adjust(wspace = 0.3, bottom=0.3)
         fig.suptitle(f'Mean Y error for each parameter. Mean Y error: {y_mean_error:.3f}', fontsize = 14)
-        fig.savefig('../../Saved models/Graphs/' + f'{self.func.name}_{aec.type}_error.png')
+        fig.savefig('../../Saved models/Graphs/' + f'{self.func.name}_{aec.type}_error.png', format = 'png')
         return y_mean_error, fig

@@ -24,7 +24,6 @@ if __name__ == '__main__':
     aec_types = AutoencoderClass.get_aec_types()
     
     files = os.listdir('../../Saved models/Params/')
-    
     if(f_name == 'all'):
         for f in func_names:
             func = TestFunctions.get_func(f)
@@ -33,14 +32,14 @@ if __name__ == '__main__':
 
             if(aec_type == 'all'):
                 for aec in aec_types:
-                    name = f + '_ego' + aec
+                    name = f + '_ego_' + aec
                     finding = [f for f in files if name in f and f.endswith(".txt")]
                     model = AutoencoderClass.create_from_file(finding[0])      
                     err_calc = ErrorCalculate(func)
                     error, fig = err_calc.calculate(model)
                     print(f'Mean Y error {f} {aec}: {error:.3f}')
             else:
-                name = f + '_ego' + aec_type
+                name = f + '_ego_' + aec_type
                 finding = [f for f in files if name in f and f.endswith(".txt")]
                 model = AutoencoderClass.create_from_file(finding[0])      
                 err_calc = ErrorCalculate(func)
@@ -53,14 +52,14 @@ if __name__ == '__main__':
         optimizer = ParamsSelection()
         if(aec_type == 'all'):
             for aec in aec_types:
-                name = f_name + '_ego' + aec
+                name = f_name + '_ego_' + aec
                 finding = [f for f in files if name in f and f.endswith(".txt")]
                 model = AutoencoderClass.create_from_file(finding[0])      
                 err_calc = ErrorCalculate(func)
                 error, fig = err_calc.calculate(model)
                 print(f'Mean Y error {f_name} {aec}: {error:.3f}')
         else:
-            name = f_name + '_ego' + aec_type
+            name = f_name + '_ego_' + aec_type
             finding = [f for f in files if name in f and f.endswith(".txt")]
             model = AutoencoderClass.create_from_file(finding[0])      
             err_calc = ErrorCalculate(func)
