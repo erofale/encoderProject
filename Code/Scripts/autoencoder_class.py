@@ -1,3 +1,7 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 from normalizer_class import Normalizer
 from function_class import TestFunctions
 import tensorflow as tf
@@ -6,7 +10,6 @@ from keras.layers import Input, Dense
 from keras.models import Model
 import keras.backend as K
 from keras.layers import Lambda
-import os
 
 ''' Класс автоэнкодеров '''
 class AutoencoderClass():
@@ -17,7 +20,7 @@ class AutoencoderClass():
         self.encoding_dim = encoding_dim # Размерность кодированного представления
         self.enc_type = enc_type         # Тип автоэнкодера
         self.aec_types = {'dense': self.__create_dense_ae,
-                          'deep':  self.__create_deep_dense_ae,
+                          'deep':  self.__create_deep_ae,
                           'vae':   self.__create_vae}
         self.normalizer = normalizer     # Нормировщик функции
         try:
@@ -93,8 +96,8 @@ class AutoencoderClass():
     # Loss функция для вариационного автоэнкодера
     @tf.autograph.experimental.do_not_convert
     def vae_loss(self, x_true, x_pred):
-        x_true = K.reshape(x_true, shape=(self.batch, self.input_dim))
-        x_pred = K.reshape(x_pred, shape=(self.batch, self.input_dim))
+        x_true = K.reshape(x_true, shape = (self.batch, self.input_dim))
+        x_pred = K.reshape(x_pred, shape = (self.batch, self.input_dim))
         loss = self.custom_loss(x_true, x_pred)
         kl_loss = -0.5 * K.sum(1 + self.z_log_var - K.square(self.z_mean) - K.exp(self.z_log_var))
         return loss + kl_loss
@@ -102,7 +105,7 @@ class AutoencoderClass():
     ''' Сжимающий автоэнкодер '''
     def __create_dense_ae(self):
         # Энкодер
-        input_data = Input(shape=(self.input_dim))
+        input_data = Input(shape = (self.input_dim))
         encoded = Dense(self.encoding_dim, activation = 'relu')(input_data)
         
         # Декодер
@@ -116,14 +119,14 @@ class AutoencoderClass():
         return encoder, decoder, autoencoder
 
     ''' Глубокий автоэнкодер '''
-    def __create_deep_dense_ae(self):
+    def __create_deep_ae(self):
         # Энкодер
-        input_data = Input(shape=(self.input_dim))
+        input_data = Input(shape = (self.input_dim))
         x = Dense(self.encoding_dim*2, activation='relu')(input_data)
         encoded = Dense(self.encoding_dim, activation='linear')(x)
         
         # Декодер
-        input_encoded = Input(shape=(self.encoding_dim,))
+        input_encoded = Input(shape = (self.encoding_dim,))
         x = Dense(self.encoding_dim*2, activation='relu')(input_encoded)
         decoded = Dense(self.input_dim, activation='sigmoid')(x)
         
@@ -135,22 +138,23 @@ class AutoencoderClass():
 
     ''' Вариационный автоэнкодер '''
     def __create_vae(self):
-        input_data = Input(shape=(self.input_dim))
+        hidden_dim = 2
+        input_data = Input(shape = (self.input_dim))
         x = Dense(self.encoding_dim, activation='relu')(input_data)
         
-        self.z_mean = Dense(self.encoding_dim)(x)    # Мат ожидание
-        self.z_log_var = Dense(self.encoding_dim)(x) # Логарифм дисперсии
+        self.z_mean = Dense(hidden_dim)(x)    # Мат ожидание
+        self.z_log_var = Dense(hidden_dim)(x) # Логарифм дисперсии
         
         # Нормальное распределение N(0, 1)
         def noiser(args):
           self.z_mean, self.z_log_var = args
-          N = K.random_normal(shape=(self.batch, self.encoding_dim), mean=0., stddev=1.0)
+          N = K.random_normal(shape=(self.batch, hidden_dim), mean=0., stddev=1.0)
           return K.exp(self.z_log_var / 2) * N + self.z_mean
         
         # Преобразование данных в нормальное распределения
-        h = Lambda(noiser, output_shape=(self.encoding_dim,))([self.z_mean, self.z_log_var])
+        h = Lambda(noiser, output_shape = (hidden_dim,))([self.z_mean, self.z_log_var])
         
-        input_encoded = Input(shape=(self.encoding_dim,))
+        input_encoded = Input(shape = (hidden_dim,))
         d = Dense(self.encoding_dim, activation='relu')(input_encoded)
         decoded = Dense(self.input_dim, activation='sigmoid')(d)
         

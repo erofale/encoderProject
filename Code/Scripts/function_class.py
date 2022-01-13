@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from generator_class import DataGenerator
 from normalizer_class import Normalizer
 from typing import Tuple, List
@@ -151,6 +153,6 @@ class TestFunctions():
         def f(x):
             return tf.math.pow(x[0] - 1, 2) + tf.math.pow(x[1], 2) + x[2] + 2 * x[3] + tf.math.pow(x[4], 3) + x[5]
         
-        data_range = [(0, 100), (0, 100), (0, 100), (0, 100), (0, 100)]
+        data_range = [(0, 100), (0, 100), (0, 100), (0, 100), (0, 100), (0, 100)]
         func = Function(f, 'func_4', 6, 4, data_range)
         return func

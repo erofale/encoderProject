@@ -135,15 +135,23 @@ class ParamsSelection():
             res = np.zeros((count,1))
             
             for i in range(count):
-              sobol_data = generator.get_sobol(n, irr_dim)
-              random.shuffle(sobol_data)
-              data_train = np.array(sobol_data[0:int(n * x[i][3])])
-              data_test = np.array(sobol_data[int(n * x[i][3]):n])
-              model = AutoencoderClass(func, dim + irr_dim, int(x[i][2]), enc_type, normalizer)
-              model.fit(data_train, data_test, int(x[i][0]), int(x[i][1]), True)
-              model.save('../../Saved models/Weights/' + f'{func.func_name}_ego_{enc_type}_{dim + irr_dim}_{int(x[i][2])}.h5')
-              pred_data = normalizer.renormalize([model.predict(np.array(xx).reshape(1,dim + irr_dim))[0] for xx in norm_data])
-              res[i] = self.__compare(func, rand_data, pred_data)
+                b_size = int(x[i][1])
+                tr_size = (int(n * x[i][3]) // 10) * 10
+                
+                sobol_data = generator.get_sobol(n, irr_dim)
+                random.shuffle(sobol_data)
+                data_train = np.array(sobol_data[0 : tr_size])
+                data_test = np.array(sobol_data[tr_size : n])
+                model = AutoencoderClass(func, dim + irr_dim, int(x[i][2]), enc_type, normalizer)
+                
+                if (enc_type == 'vae'):
+                    while(tr_size % b_size != 0):
+                        b_size += 1
+                
+                model.fit(data_train, data_test, int(x[i][0]), b_size, True)
+                model.save('../../Saved models/Weights/' + f'{func.func_name}_ego_{enc_type}_{dim + irr_dim}_{int(x[i][2])}.h5')
+                pred_data = normalizer.renormalize([model.predict(np.array(xx).reshape(1,dim + irr_dim))[0] for xx in norm_data])
+                res[i] = self.__compare(func, rand_data, pred_data)
             return res
         
         xlimits = np.array([[5,60], [16,256], [dim//2, dim - 1], [0.5, 1.0]])
@@ -152,7 +160,15 @@ class ParamsSelection():
         xdoe = sampling(ndoe)
         ego = EGO(n_iter=n_iter, criterion=criterion, xdoe=xdoe, xlimits=xlimits)
         x_opt, error, _, _, _ = ego.optimize(fun=predict_params)
-        x_opt = [int(x_opt[0]), int(x_opt[1]), int(x_opt[2]), x_opt[3]]
+        
+        x_1, x_2, x_3, x_4 = x_opt
+        
+        if (enc_type == 'vae'):
+            tr_size = (int(n * x_4) // 10) * 10
+            while(tr_size % int(x_2) != 0):
+                x_2 += 1
+        
+        x_opt = [int(x_1), int(x_2), int(x_3), x_4]
         with open('../../Saved models/Params/' + f'{func.func_name}_ego_{enc_type}_{dim + irr_dim}_{x_opt[2]}.txt', 'w') as f:
             f.write(f'func name: {func.func_name}\nepochs: {x_opt[0]}\nbatch: {x_opt[1]}\nencoded dim: {x_opt[2]}\nsample split: {x_opt[3]}')
         return x_opt, error
