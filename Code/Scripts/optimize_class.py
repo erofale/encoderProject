@@ -77,7 +77,7 @@ class ParamsSelection():
                   data_test = np.array(sobol_data[int(n * percent):n])
                   model = AutoencoderClass(func, dim, size, enc_type, normalizer)
                   model.fit(data_train, data_test, epoch, batch, True)
-                  pred_data = normalizer.renormalize([model.predict(np.array(x).reshape(1,dim + irr_dim))[0] for x in norm_data])
+                  pred_data = normalizer.renormalize([model.predict(np.array(x).reshape(1,dim))[0] for x in norm_data])
                   cur_error = self.__compare(func, rand_data, pred_data)
                   if cur_error < error:
                     model.save('../../Saved models/Weights/' + f'{func.func_name}_brute_force_{enc_type}_{dim}_{size}.h5')    
@@ -141,16 +141,16 @@ class ParamsSelection():
                 sobol_data = generator.get_sobol(n, irr_dim)
                 random.shuffle(sobol_data)
                 data_train = np.array(sobol_data[0 : tr_size])
-                data_test = np.array(sobol_data[tr_size : n])
-                model = AutoencoderClass(func, dim, int(x[i][2]), enc_type, normalizer)
+                data_test = np.array(sobol_data[tr_size : n])             
                 
                 if (enc_type == 'vae'):
                     while(tr_size % b_size != 0):
-                        b_size += 1
+                        b_size -= 1
                 
+                model = AutoencoderClass(func, int(x[i][2]), enc_type)
                 model.fit(data_train, data_test, int(x[i][0]), b_size, True)
                 model.save('../../Saved models/Weights/' + f'{func.func_name}_ego_{enc_type}_{dim}_{int(x[i][2])}.h5')
-                pred_data = normalizer.renormalize([model.predict(np.array(xx).reshape(1,dim + irr_dim))[0] for xx in norm_data])
+                pred_data = normalizer.renormalize([model.predict(np.array(xx).reshape(1,dim))[0] for xx in norm_data])
                 res[i] = self.__compare(func, rand_data, pred_data)
             return res
         
@@ -166,7 +166,7 @@ class ParamsSelection():
         if (enc_type == 'vae'):
             tr_size = (int(n * x_4) // 10) * 10
             while(tr_size % int(x_2) != 0):
-                x_2 += 1
+                x_2 -= 1
         
         x_opt = [int(x_1), int(x_2), int(x_3), x_4]
         with open('../../Saved models/Params/' + f'{func.func_name}_ego_{enc_type}_{dim}_{x_opt[2]}.txt', 'w') as f:

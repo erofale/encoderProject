@@ -31,7 +31,7 @@ class ErrorCalculate():
         '''
         rand_data = self.generator.get_lsh(num_samples, self.irr_dim)
         norm_data = self.normalizer.normalize(rand_data)
-        pred_data = self.normalizer.renormalize([aec.predict(np.array(xx).reshape(1,self.dim + self.irr_dim))[0] for xx in norm_data])
+        pred_data = self.normalizer.renormalize([aec.predict(np.array(xx).reshape(1,self.dim))[0] for xx in norm_data])
         y_orig = [self.func(x) for x in rand_data]
         y_pred = [self.func(x) for x in pred_data]
         # средняя ошибка по всем предсказаниям
@@ -52,7 +52,7 @@ class ErrorCalculate():
                 cur_generator = DataGenerator(self.dim, d_r)
                 r_data = cur_generator.get_lsh(samp_n, self.irr_dim)
                 n_data = self.normalizer.normalize(r_data)
-                p_data = self.normalizer.renormalize([aec.predict(np.array(xx).reshape(1,self.dim + self.irr_dim))[0] for xx in n_data])
+                p_data = self.normalizer.renormalize([aec.predict(np.array(xx).reshape(1,self.dim))[0] for xx in n_data])
                 y_orig = [self.func(x) for x in r_data]
                 y_pred = [self.func(x) for x in p_data]
                 y_error = mean_absolute_error(y_orig, y_pred)

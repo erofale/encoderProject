@@ -2,8 +2,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
-from normalizer_class import Normalizer
-from function_class import TestFunctions
+from function_class import TestFunctions, Function
 import tensorflow as tf
 from tensorflow import keras
 from keras.layers import Input, Dense
@@ -13,16 +12,15 @@ from keras.layers import Lambda
 
 ''' Класс автоэнкодеров '''
 class AutoencoderClass():
-    def __init__(self, func, input_dim : int, encoding_dim : int, enc_type : str, normalizer : Normalizer):
+    def __init__(self, func : Function, encoding_dim : int, enc_type : str):
         self.func = func                 # Функция обучения
-        self.batch = 0                   # Размр батча
-        self.input_dim = input_dim       # Размерность входного представления
+        self.batch = 0                   # Размер батча
+        self.input_dim, _, _, _, self.normalizer = func.get_params()
         self.encoding_dim = encoding_dim # Размерность кодированного представления
         self.enc_type = enc_type         # Тип автоэнкодера
         self.aec_types = {'dense': self.__create_dense_ae,
                           'deep':  self.__create_deep_ae,
                           'vae':   self.__create_vae}
-        self.normalizer = normalizer     # Нормировщик функции
         try:
           # Сборка моделей
           self.encoder, self.decoder, self.autoencoder = self.aec_types[self.enc_type]()
@@ -81,8 +79,7 @@ class AutoencoderClass():
         s_1 = int(file.split('_')[4]) # dim
         enc_type = file.split('_')[3] # type
         func = TestFunctions.get_func(f_name)
-        _, _, _, _, norm = func.get_params()
-        model = AutoencoderClass(func, s_1, p_3, enc_type, norm)
+        model = AutoencoderClass(func, p_3, enc_type)
         model.batch = p_2
         if os.path.isfile('../../Saved models/Weights/' + file.replace('.txt', '.h5')):
             model.load('../../Saved models/Weights/' + file.replace('.txt', '.h5'))
@@ -95,9 +92,7 @@ class AutoencoderClass():
 
     # Loss функция для вариационного автоэнкодера
     @tf.autograph.experimental.do_not_convert
-    def vae_loss(self, x_true, x_pred):
-        x_true = K.reshape(x_true, shape = (self.batch, self.input_dim))
-        x_pred = K.reshape(x_pred, shape = (self.batch, self.input_dim))
+    def vae_loss(self, x_true, x_pred):   
         loss = self.custom_loss(x_true, x_pred)
         kl_loss = -0.5 * K.sum(1 + self.z_log_var - K.square(self.z_mean) - K.exp(self.z_log_var))
         return loss + kl_loss
@@ -138,25 +133,23 @@ class AutoencoderClass():
 
     ''' Вариационный автоэнкодер '''
     def __create_vae(self):
-        hidden_dim = 2
-        input_data = Input(shape = (self.input_dim))
-        x = Dense(self.encoding_dim, activation='relu')(input_data)
+        input_data = Input(shape = (self.input_dim,))
         
-        self.z_mean = Dense(hidden_dim)(x)    # Мат ожидание
-        self.z_log_var = Dense(hidden_dim)(x) # Логарифм дисперсии
+        self.z_mean = Dense(self.encoding_dim, activation='relu')(input_data)    # Мат ожидание
+        self.z_log_var = Dense(self.encoding_dim, activation='relu')(input_data) # Логарифм дисперсии
         
         # Нормальное распределение N(0, 1)
         def noiser(args):
           self.z_mean, self.z_log_var = args
-          N = K.random_normal(shape=(self.batch, hidden_dim), mean=0., stddev=1.0)
-          return K.exp(self.z_log_var / 2) * N + self.z_mean
+          N = K.random_normal(shape=(self.encoding_dim,), mean=0., stddev=1.0)
+          ex = K.exp(self.z_log_var / 2)
+          return ex * N + self.z_mean
         
         # Преобразование данных в нормальное распределения
-        h = Lambda(noiser, output_shape = (hidden_dim,))([self.z_mean, self.z_log_var])
+        h = Lambda(noiser, output_shape = (self.batch, self.encoding_dim))([self.z_mean, self.z_log_var])
         
-        input_encoded = Input(shape = (hidden_dim,))
-        d = Dense(self.encoding_dim, activation='relu')(input_encoded)
-        decoded = Dense(self.input_dim, activation='sigmoid')(d)
+        input_encoded = Input(shape = (self.encoding_dim,))
+        decoded = Dense(self.input_dim, activation='sigmoid')(input_encoded)
         
         encoder = Model(input_data, h, name='encoder')
         decoder = Model(input_encoded, decoded, name='decoder')
