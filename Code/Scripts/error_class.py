@@ -37,10 +37,11 @@ class ErrorCalculate():
         # средняя ошибка по всем предсказаниям
         y_mean_error = mean_absolute_error(y_orig, y_pred)
     
+        real_dim = self.dim - self.irr_dim
         # средняя ошибка по кластерам
-        fig = plt.figure(figsize = (4 * self.dim, 4))
+        fig = plt.figure(figsize = (4 * real_dim, 4))
         samp_n = num_samples // 10
-        for i in range(self.dim):
+        for i in range(real_dim):
             a, b = self.data_range[i]
             h = (b - a) / 10
             err = []
@@ -49,7 +50,7 @@ class ErrorCalculate():
                 d_r = self.data_range.copy()
                 d_r[i] = (k, k + h)
                 names.append(f'{k:.1f}-{k+h:.1f}')
-                cur_generator = DataGenerator(self.dim, d_r)
+                cur_generator = DataGenerator(real_dim, d_r)
                 r_data = cur_generator.get_lsh(samp_n, self.irr_dim)
                 n_data = self.normalizer.normalize(r_data)
                 p_data = self.normalizer.renormalize([aec.predict(np.array(xx).reshape(1,self.dim))[0] for xx in n_data])
@@ -58,7 +59,7 @@ class ErrorCalculate():
                 y_error = mean_absolute_error(y_orig, y_pred)
                 err.append(y_error)
           
-            ax = fig.add_subplot(1, self.dim, (i+1))
+            ax = fig.add_subplot(1, real_dim, (i+1))
             color = np.random.rand(3)
             ax.bar(names, err, color = color)
             for tick in ax.get_xticklabels():
